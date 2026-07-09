@@ -31,7 +31,9 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.production
 
 # vercel
 .vercel
@@ -39,3 +41,37 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI assistants & agent tooling (local state, not part of the project)
+.claude/
+.cursor/
+.aider*
+.copilot/
+.windsurf/
+.codeium/
+.continue/
+.zed/
+.antigravity/
+.augment/
+.agents/
+.codex/
+.gpt-engineer/
+.kiro/
+.roo/
+.roo-code/
+.qodo/
+.opencode/
+AGENTS.local.md
+CLAUDE.local.md
+
+# Editor / IDE local state
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Browser automation / scraping caches
+.selenium/
+.playwright/
+.puppeteer/
+.chromium/

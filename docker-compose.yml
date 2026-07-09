@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: library_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: library_user
+      POSTGRES_PASSWORD: library_password
+      POSTGRES_DB: library_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - library_postgres_data:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    container_name: library_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: library_minio
+      MINIO_ROOT_PASSWORD: library_minio_password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - library_minio_data:/data
+
+  # One-shot: waits for MinIO, then creates the covers bucket and makes it
+  # publicly readable so cover URLs are fetchable by next/image.
+  createbuckets:
+    image: minio/mc
+    container_name: library_createbuckets
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set local http://minio:9000 library_minio library_minio_password) do echo 'waiting for minio...'; sleep 2; done;
+      /usr/bin/mc mb --ignore-existing local/library-covers;
+      /usr/bin/mc anonymous set download local/library-covers;
+      exit 0;
+      "
+
+  adminer:
+    image: adminer
+    container_name: library_adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+volumes:
+  library_postgres_data:
+  library_minio_data:
