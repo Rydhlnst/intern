@@ -33,11 +33,15 @@ export async function uploadBookCover(file: File) {
     })
   );
 
-  // Use MINIO_PUBLIC_HOST (VPS public IP/domain) for stored URLs so browsers can
-  // reach them. Falls back to MINIO_ENDPOINT for local dev (both are the same host).
+  // Use MINIO_PUBLIC_HOST for stored URLs so browsers can reach them.
+  // MINIO_PUBLIC_PORT overrides MINIO_PORT for the public URL (e.g. 443 when Nginx terminates TLS).
+  // Default ports (80/443) are omitted from the URL so next/image remotePatterns match cleanly.
   const publicHost = process.env.MINIO_PUBLIC_HOST ?? process.env.MINIO_ENDPOINT;
   const protocol = process.env.MINIO_USE_SSL === "true" ? "https" : "http";
-  const coverUrl = `${protocol}://${publicHost}:${process.env.MINIO_PORT}/${BUCKET}/${objectKey}`;
+  const publicPort = process.env.MINIO_PUBLIC_PORT ?? process.env.MINIO_PORT;
+  const isDefaultPort = (protocol === "https" && publicPort === "443") || (protocol === "http" && publicPort === "80");
+  const portPart = isDefaultPort ? "" : `:${publicPort}`;
+  const coverUrl = `${protocol}://${publicHost}${portPart}/${BUCKET}/${objectKey}`;
 
   return {
     coverUrl,

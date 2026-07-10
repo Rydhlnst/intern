@@ -15,9 +15,14 @@ const nextConfig: NextConfig = {
       {
         // MINIO_PUBLIC_HOST is the publicly reachable hostname (e.g. your VPS IP).
         // Falls back to MINIO_ENDPOINT for local dev.
+        // MINIO_PUBLIC_PORT overrides MINIO_PORT for the public-facing URL (e.g. 443 via Nginx HTTPS).
         protocol: (process.env.MINIO_USE_SSL === "true" ? "https" : "http") as "http" | "https",
         hostname: process.env.MINIO_PUBLIC_HOST ?? process.env.MINIO_ENDPOINT ?? "localhost",
-        port: process.env.MINIO_PORT ?? "9000",
+        port: (() => {
+          const proto = process.env.MINIO_USE_SSL === "true" ? "https" : "http";
+          const port = process.env.MINIO_PUBLIC_PORT ?? process.env.MINIO_PORT ?? "9000";
+          return (proto === "https" && port === "443") || (proto === "http" && port === "80") ? "" : port;
+        })(),
         pathname: "/**",
       },
     ],
