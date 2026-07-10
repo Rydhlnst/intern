@@ -27,12 +27,19 @@ Seed credentials: `admin@example.com`, `librarian@example.com`, `staff@example.c
 
 The app has two independent surfaces that share the same database but have different auth postures:
 
-1. **Public Discover page** (`/`) — session-optional. `getSession()` is called; if unauthenticated, data queries return empty reader collections and auth-only sidebar nav items (My Library, Bookmark, Favorite, History, Log out) are hidden. `/books/[id]` is also public — it uses `getSession()` but no `requirePermission`.
+1. **Public reader surface** — session-optional or reader-only. `/discover`, `/discover/categories`, `/discover/download`, `/books/[id]` are session-optional (guest can browse; sidebar filters auth-only items). `/library`, `/bookmark`, `/favorite`, `/history` are reader-only — they call `requireAuth()` and redirect to `/login` if guest. All public pages render inside `<PublicLibraryShell>` — pass `children` for full-width flat layouts (book detail, collections), or pass `variant/books/categories/query` for the discover-style two-panel layout.
 2. **Management routes** (`/dashboard`, `/books`, `/categories`, `/loans`, `/members`, `/users`) — every server action and page starts with `requirePermission()`, which redirects to `/login` if unauthenticated and throws if the role lacks the permission. There are no route-group middleware files; protection is applied per-page/per-action.
 
-**What's built:** `/dashboard`, `/books/[id]` (public detail), `/login`, `/signup`. The server layer (actions + DB queries) is complete for books and categories — only the management list/form pages are missing.
+**What's built:** `/dashboard`, `/books/[id]` (public detail wrapped in shell with bookmark/favorite buttons), `/library` (stats + collection previews + borrow-history table), `/bookmark`, `/favorite`, `/history`, `/login`, `/signup`. The server layer (actions + DB queries) is complete for books and categories — only the management list/form pages are missing.
 
 **What's missing (UI only):** `/books` list page, `/categories` page, `/members`, `/loans`, `/users`.
+
+### Reader collections — bookmarks, favorites, history, borrow log
+
+- **Tables:** `readerBookmarks`, `readerFavorites`, `readerHistory` (schema in `src/db/schema.ts`). Loans are joined via `users.email → members.email → loans.memberId` since better-auth `user` and `members` are separate rows.
+- **Queries:** `getBookmarks(userId, page)`, `getFavorites(userId, page)`, `getReaderHistory(userId, page)`, `getUserBorrowHistory(userId)`, `isBookmarked(userId, bookId)`, `isFavorited(userId, bookId)` — all in `src/db/queries/reader-collections.ts`.
+- **Actions:** `toggleBookmark(bookId)` and `toggleFavorite(bookId)` in `src/actions/reader-collections.ts`. Toggle-off deletes; toggle-on inserts and also writes a `readerHistory` row with action `"bookmarked"` or `"favorited"`.
+- **UI:** `<BookActionButtons />` on the book detail page wires both toggles and shows a `toast.loading(...)` that resolves to success/error. `<BackButton />` (`router.back()`) sits at the top of every collection page.
 
 ### Auth — better-auth (not NextAuth)
 

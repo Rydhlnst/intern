@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
+  ArrowLeftIcon,
   BookOpen,
   Bookmark,
   ChevronRight,
@@ -820,9 +821,10 @@ function RightDetailPanel({
         {/* Back link */}
         <Link
           href={buildHref(categorySlug, query)}
-          className="block text-center text-xs text-gray-400 hover:text-gray-500 transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 w-full text-center text-xs text-gray-400 hover:text-gray-500 transition-colors"
         >
-          ← Back to {categorySlug !== "all" ? categorySlug : "all books"}
+          <ArrowLeftIcon className="size-3" />
+          Back to {categorySlug !== "all" ? categorySlug : "all books"}
         </Link>
       </div>
     </div>

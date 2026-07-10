@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { History, Bookmark, Heart, Eye } from "lucide-react"
+import { ArrowLeftIcon, ArrowRightIcon, Bookmark, Eye, Heart, History } from "lucide-react"
 
 import { requireAuth } from "@/auth/guards"
 import { getReaderHistory } from "@/db/queries/reader-collections"
@@ -77,7 +77,8 @@ export default async function HistoryPage({ searchParams }: PageProps) {
               href="/discover"
               className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--library-accent)] hover:underline"
             >
-              Jelajahi katalog →
+              Jelajahi katalog
+              <ArrowRightIcon className="size-3.5" />
             </Link>
           </div>
         ) : (
@@ -132,18 +133,20 @@ export default async function HistoryPage({ searchParams }: PageProps) {
                 {page > 1 && (
                   <Link
                     href={`/history?page=${page - 1}`}
-                    className="text-sm font-medium text-gray-500 hover:text-gray-900 px-4 py-1.5 rounded-full border border-gray-200 hover:border-gray-300 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 px-4 py-1.5 rounded-full border border-gray-200 hover:border-gray-300 transition-colors"
                   >
-                    ← Sebelumnya
+                    <ArrowLeftIcon className="size-3.5" />
+                    Sebelumnya
                   </Link>
                 )}
                 <span className="text-sm text-gray-400">{page} / {data.totalPages}</span>
                 {page < data.totalPages && (
                   <Link
                     href={`/history?page=${page + 1}`}
-                    className="text-sm font-medium text-gray-500 hover:text-gray-900 px-4 py-1.5 rounded-full border border-gray-200 hover:border-gray-300 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 px-4 py-1.5 rounded-full border border-gray-200 hover:border-gray-300 transition-colors"
                   >
-                    Berikutnya →
+                    Berikutnya
+                    <ArrowRightIcon className="size-3.5" />
                   </Link>
                 )}
               </div>

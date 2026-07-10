@@ -61,8 +61,36 @@ next-env.d.ts
 .roo-code/
 .qodo/
 .opencode/
+.anthropic/
+.gemini/
+.cody/
+.tabnine/
+.supermaven/
+.amazonq/
+.cline/
+.bolt/
+.lovable/
+.v0/
+.replit/
+.devin/
+.sourcegraph/
+.mentat/
+.plandex/
+.pieces/
+.smol/
+.sweep/
+.trae/
+.jules/
 AGENTS.local.md
 CLAUDE.local.md
+GEMINI.md
+CURSOR.md
+COPILOT.md
+.aiderignore
+.cursorignore
+.codeiumignore
+.cursorrules
+.windsurfrules
 
 # Editor / IDE local state
 .vscode/

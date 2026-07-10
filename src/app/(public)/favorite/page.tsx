@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Heart } from "lucide-react"
+import { ArrowRightIcon, Heart } from "lucide-react"
 
 import { requireAuth } from "@/auth/guards"
 import { getFavorites } from "@/db/queries/reader-collections"
@@ -54,7 +54,8 @@ export default async function FavoritePage({ searchParams }: PageProps) {
               href="/discover"
               className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--library-accent)] hover:underline"
             >
-              Jelajahi katalog →
+              Jelajahi katalog
+              <ArrowRightIcon className="size-3.5" />
             </Link>
           </div>
         ) : (
