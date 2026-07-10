@@ -1,0 +1,111 @@
+# Coolify-optimized compose file.
+#
+# Differences from docker-compose.yml:
+# - No `container_name` (Coolify auto-names to avoid collisions)
+# - No host port bindings on postgres/minio/adminer (Coolify handles routing;
+#   exposing DB/console ports on the host is a bad idea in production)
+# - App uses Coolify's magic SERVICE_FQDN_APP env var so Traefik routes
+#   library.beres.io -> app:3000 automatically
+# - MinIO exposed via a second FQDN so covers are reachable from browsers
+#
+# In Coolify:
+#   Application type: Docker Compose
+#   Compose file: docker-compose.coolify.yml
+#   Set SERVICE_FQDN_APP=library.beres.io  (Coolify auto-generates one if empty)
+#   Set SERVICE_FQDN_MINIO=minio.library.beres.io
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-library_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-library_db}
+    volumes:
+      - library_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-library_user} -d ${POSTGRES_DB:-library_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - library_minio_data:/data
+    # Expose the S3 API via a public FQDN so browsers can load cover images.
+    # In Coolify, set SERVICE_FQDN_MINIO=minio.library.beres.io on this service.
+    labels:
+      - coolify.managed=true
+    expose:
+      - "9000"
+      - "9001"
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo 'waiting for minio...'; sleep 2; done;
+      /usr/bin/mc mb --ignore-existing local/library-covers;
+      /usr/bin/mc anonymous set download local/library-covers;
+      exit 0;
+      "
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  app:
+    build:
+      context: .
+      target: runner
+      args:
+        # MINIO_PUBLIC_HOST is baked into next.config for next/image remotePatterns.
+        # Set to your MinIO public domain (e.g. minio.library.beres.io).
+        MINIO_PUBLIC_HOST: ${MINIO_PUBLIC_HOST}
+        MINIO_PORT: ${MINIO_PORT:-443}
+        MINIO_USE_SSL: ${MINIO_USE_SSL:-true}
+    restart: unless-stopped
+    # Coolify's magic env var: exposes the app at this FQDN via Traefik.
+    # Set SERVICE_FQDN_APP=library.beres.io in Coolify's env panel.
+    environment:
+      SERVICE_FQDN_APP: ${SERVICE_FQDN_APP:-3000}
+      DATABASE_URL: ${DATABASE_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${SERVICE_FQDN_APP}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: library-covers
+      MINIO_USE_SSL: "false"
+      # Public host used when constructing stored cover URLs (browser-facing).
+      MINIO_PUBLIC_HOST: ${MINIO_PUBLIC_HOST}
+    expose:
+      - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  library_postgres_data:
+  library_minio_data:

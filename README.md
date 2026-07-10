@@ -185,6 +185,76 @@ This runs:
 
 Log in with the seeded `admin@example.com` / `password` credentials, then change the admin password immediately for production.
 
+## Deploying on Coolify
+
+The repo ships with a Coolify-optimized compose file at `docker-compose.coolify.yml`. It differs from the plain VPS version by removing host port bindings (Coolify's Traefik handles routing), dropping `container_name` (Coolify auto-names), and using Coolify's magic FQDN environment variables.
+
+### 1. Point DNS
+
+In your DNS provider, create two A records pointing to your Coolify server IP:
+- `library.beres.io` — the app
+- `minio.library.beres.io` — MinIO S3 API (needs a public hostname because browsers load cover images directly from it)
+
+### 2. Create the resource in Coolify
+
+1. In Coolify: **+ New Resource → Docker Compose (Empty)**
+2. Attach your Git repository (public or with a deploy key)
+3. Set **Docker Compose Location** to `docker-compose.coolify.yml`
+4. Set **Base Directory** to `/` (repo root)
+
+### 3. Configure domains
+
+On the **app** service:
+- Set the domain to `https://library.beres.io` (Coolify will issue a Let's Encrypt cert automatically)
+
+On the **minio** service:
+- Set the domain to `https://minio.library.beres.io` targeting internal port `9000`
+- Coolify handles TLS termination, so the S3 API is served over HTTPS
+
+### 4. Environment variables
+
+Set these in Coolify's **Environment Variables** panel (Coolify substitutes them at build & runtime):
+
+| Variable                | Value                                                                 |
+|-------------------------|-----------------------------------------------------------------------|
+| `SERVICE_FQDN_APP`      | `https://library.beres.io`                                            |
+| `POSTGRES_PASSWORD`     | strong random string                                                  |
+| `DATABASE_URL`          | `postgres://library_user:<POSTGRES_PASSWORD>@postgres:5432/library_db` |
+| `BETTER_AUTH_SECRET`    | 32+ random chars (`openssl rand -base64 32`)                          |
+| `MINIO_ROOT_USER`       | strong username                                                       |
+| `MINIO_ROOT_PASSWORD`   | strong random string                                                  |
+| `MINIO_PUBLIC_HOST`     | `minio.library.beres.io`                                              |
+| `MINIO_PORT`            | `443`                                                                 |
+| `MINIO_USE_SSL`         | `true`                                                                |
+
+The `BETTER_AUTH_URL` in the compose file already resolves to `SERVICE_FQDN_APP` automatically.
+
+Mark **`MINIO_PUBLIC_HOST`**, **`MINIO_PORT`**, and **`MINIO_USE_SSL`** as **Build Variable** in Coolify — they must be present at build time (they're baked into `next.config.ts` for `next/image`).
+
+### 5. Deploy
+
+Click **Deploy**. Coolify will:
+1. Build the app image (Next.js standalone build with sharp binaries)
+2. Start Postgres and MinIO
+3. Run `createbuckets` (creates the `library-covers` bucket, makes it publicly readable)
+4. Run `migrate` (applies Drizzle migrations + seeds the four test accounts)
+5. Start the app once everything above succeeds
+
+### 6. Verify
+
+- Visit <https://library.beres.io> — should show the discover page
+- Log in with `admin@example.com` / `password`
+- Upload a book cover from the dashboard — verify it renders via `minio.library.beres.io`
+
+### Notes & troubleshooting
+
+- **First deploy is slow** — the Next.js standalone build is ~2–4 minutes on modest hardware.
+- **Migration failed on first run** — check the `migrate` service logs in Coolify. Usually a bad `DATABASE_URL` (the host must be `postgres`, the internal service name — not `localhost`).
+- **Cover images 404 in browser** — check `MINIO_PUBLIC_HOST` matches your MinIO domain exactly, no `http://` prefix. Also confirm the `library-covers` bucket exists and is set to anonymous download in the MinIO console.
+- **Changed `MINIO_PUBLIC_HOST`?** — trigger a rebuild (not just a redeploy). The value is baked into the app bundle at build time.
+- **Cert issuance stuck** — Traefik needs port 80 open on the Coolify host to complete the Let's Encrypt HTTP-01 challenge.
+- **Admin console for MinIO** — the compose file doesn't expose port 9001. If you want the MinIO UI, add a second domain on the `minio` service pointing to internal port `9001`.
+
 ## What's Implemented vs Pending
 
 **Implemented (UI):**
