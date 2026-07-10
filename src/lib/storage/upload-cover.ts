@@ -33,7 +33,11 @@ export async function uploadBookCover(file: File) {
     })
   );
 
-  const coverUrl = `${process.env.MINIO_USE_SSL === "true" ? "https" : "http"}://${process.env.MINIO_ENDPOINT}:${process.env.MINIO_PORT}/${BUCKET}/${objectKey}`;
+  // Use MINIO_PUBLIC_HOST (VPS public IP/domain) for stored URLs so browsers can
+  // reach them. Falls back to MINIO_ENDPOINT for local dev (both are the same host).
+  const publicHost = process.env.MINIO_PUBLIC_HOST ?? process.env.MINIO_ENDPOINT;
+  const protocol = process.env.MINIO_USE_SSL === "true" ? "https" : "http";
+  const coverUrl = `${protocol}://${publicHost}:${process.env.MINIO_PORT}/${BUCKET}/${objectKey}`;
 
   return {
     coverUrl,

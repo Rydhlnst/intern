@@ -99,7 +99,7 @@ const getCachedPublicDiscoverPageData = unstable_cache(
       .orderBy(desc(books.createdAt))
       .limit(24)
 
-    const mappedBooks = rows.map((row, index) => toDiscoverBook(row as PublicBookRow, index))
+    const mappedBooks = (rows as unknown as PublicBookRow[]).map((row, index) => toDiscoverBook(row, index))
 
     return {
       books: mappedBooks,

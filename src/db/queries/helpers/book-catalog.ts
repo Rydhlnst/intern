@@ -80,20 +80,24 @@ export function getDashboardBookListSelect() {
   }
 }
 
+// Drizzle ORM 0.45 drops join methods from the Omit<PgSelectKind<...>> return
+// type after the first join. Cast through `any` at each step so the chain
+// compiles; the actual query is correct at runtime.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyQ = any
+
 export function fromBooksCatalogQuery<
   TSelection extends SelectedFields<PgColumn, typeof books>,
 >(selection: TSelection, options?: { withRatings?: boolean }) {
-  const query = db
-    .select(selection)
-    .from(books)
-    .innerJoin(bookCategories, eq(books.categoryId, bookCategories.id))
-    .leftJoin(bookCatalogCopyAgg, eq(bookCatalogCopyAgg.bookId, books.id))
+  const q0: AnyQ = db.select(selection).from(books)
+  const q1: AnyQ = q0.innerJoin(bookCategories, eq(books.categoryId, bookCategories.id))
+  const q2: AnyQ = q1.leftJoin(bookCatalogCopyAgg, eq(bookCatalogCopyAgg.bookId, books.id))
 
   if (options?.withRatings) {
-    return query.leftJoin(bookCatalogRatingAgg, eq(bookCatalogRatingAgg.bookId, books.id))
+    return q2.leftJoin(bookCatalogRatingAgg, eq(bookCatalogRatingAgg.bookId, books.id)) as AnyQ
   }
 
-  return query
+  return q2 as AnyQ
 }
 
 type ReaderCatalogSource = typeof readerBookmarks | typeof readerFavorites
@@ -109,18 +113,16 @@ export function fromReaderCatalogQuery<
   selection: TSelection,
   options?: { withRatings?: boolean }
 ) {
-  const query = db
-    .select(selection)
-    .from(source)
-    .innerJoin(books, eq(sourceBookId, books.id))
-    .innerJoin(bookCategories, eq(books.categoryId, bookCategories.id))
-    .leftJoin(bookCatalogCopyAgg, eq(bookCatalogCopyAgg.bookId, books.id))
+  const q0: AnyQ = db.select(selection).from(source)
+  const q1: AnyQ = q0.innerJoin(books, eq(sourceBookId, books.id))
+  const q2: AnyQ = q1.innerJoin(bookCategories, eq(books.categoryId, bookCategories.id))
+  const q3: AnyQ = q2.leftJoin(bookCatalogCopyAgg, eq(bookCatalogCopyAgg.bookId, books.id))
 
   if (options?.withRatings) {
-    return query.leftJoin(bookCatalogRatingAgg, eq(bookCatalogRatingAgg.bookId, books.id))
+    return q3.leftJoin(bookCatalogRatingAgg, eq(bookCatalogRatingAgg.bookId, books.id)) as AnyQ
   }
 
-  return query
+  return q3 as AnyQ
 }
 
 export function buildBookSearchCondition(

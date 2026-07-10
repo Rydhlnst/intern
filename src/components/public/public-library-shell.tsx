@@ -13,7 +13,6 @@ import {
   Heart,
   HelpCircle,
   History,
-  Home,
   Library,
   LogOut,
   Search,
@@ -28,6 +27,7 @@ import {
   primaryNavItems,
   secondaryNavItems,
 } from "@/lib/discover-data"
+import { authClient } from "@/lib/auth-client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -69,28 +69,29 @@ const navIconMap = {
 
 type PublicLibraryShellProps = {
   activeNav: string
-  title: string
-  description: string
-  books: DiscoverBook[]
-  categories: CategoryItem[]
-  query: string
-  selectedCategorySlug: string
-  selectedCategoryLabel: string | null
+  title?: string
+  description?: string
+  books?: DiscoverBook[]
+  categories?: CategoryItem[]
+  query?: string
+  selectedCategorySlug?: string
+  selectedCategoryLabel?: string | null
   variant?: "discover" | "categories" | "download"
   user?: { name: string; email: string; role: string } | null
+  children?: React.ReactNode
 }
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
 
 export function PublicLibraryShell({
   activeNav,
-  books,
-  categories,
-  query,
-  selectedCategorySlug,
-  selectedCategoryLabel,
+  books = [],
+  categories = [],
+  query = "",
+  selectedCategorySlug = "all",
   variant = "discover",
   user = null,
+  children,
 }: PublicLibraryShellProps) {
   const router = useRouter()
   const [searchInput, setSearchInput] = React.useState(query)
@@ -98,12 +99,19 @@ export function PublicLibraryShell({
   const [selectedBook, setSelectedBook] = React.useState<DiscoverBook | null>(books[0] ?? null)
   const [sheetOpen, setSheetOpen] = React.useState(false)
 
-  // Sync with server-rendered props when URL changes
-  React.useEffect(() => {
+  // Track the last-seen URL-derived props so we can reset local state during
+  // render when navigation changes them (avoids the cascading re-render of
+  // calling setState inside useEffect).
+  const [syncedQuery, setSyncedQuery] = React.useState(query)
+  const [syncedCategorySlug, setSyncedCategorySlug] = React.useState(selectedCategorySlug)
+
+  if (syncedQuery !== query || syncedCategorySlug !== selectedCategorySlug) {
+    setSyncedQuery(query)
+    setSyncedCategorySlug(selectedCategorySlug)
     setSearchInput(query)
     setActiveCategorySlug(selectedCategorySlug)
     setSelectedBook(books[0] ?? null)
-  }, [query, selectedCategorySlug, books])
+  }
 
   function buildHref(cat: string, q: string) {
     const params = new URLSearchParams()
@@ -162,15 +170,19 @@ export function PublicLibraryShell({
             .map((item) => {
             const Icon = navIconMap[item.icon as keyof typeof navIconMap] ?? Compass
             const isActive = activeNav === item.id
+            const href =
+              item.id === "discover" ? "/discover"
+              : item.id === "category" ? "/discover/categories"
+              : item.id === "download" ? "/discover/download"
+              : item.id === "library" ? "/library"
+              : item.id === "bookmark" ? "/bookmark"
+              : item.id === "favorite" ? "/favorite"
+              : item.id === "history" ? "/history"
+              : "#"
             return (
               <Link
                 key={item.id}
-                href={
-                  item.id === "discover" ? "/discover"
-                  : item.id === "category" ? "/discover/categories"
-                  : item.id === "download" ? "/discover/download"
-                  : "#"
-                }
+                href={href}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
@@ -191,6 +203,22 @@ export function PublicLibraryShell({
             .filter((item) => (user ? true : item.id !== "logout"))
             .map((item) => {
             const Icon = navIconMap[item.icon as keyof typeof navIconMap] ?? Settings
+            if (item.id === "logout") {
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={async () => {
+                    await authClient.signOut()
+                    router.push("/login")
+                  }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                >
+                  <Icon className="size-4 shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              )
+            }
             return (
               <Link
                 key={item.id}
@@ -271,7 +299,8 @@ export function PublicLibraryShell({
         {/* Content row */}
         <div className="flex-1 flex overflow-hidden">
           {/* Main scrollable content */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+          <main className={cn("flex-1 overflow-y-auto", children ? "bg-white" : "p-4 sm:p-6 space-y-5")}>
+            {children ?? (<>
             {variant === "download" && (
               <section className="bg-white rounded-2xl p-10 shadow-sm ring-1 ring-black/5 flex flex-col items-center justify-center text-center min-h-[60vh]">
                 <div className="size-16 rounded-2xl bg-[var(--library-highlight-soft)] flex items-center justify-center mb-5">
@@ -356,10 +385,10 @@ export function PublicLibraryShell({
                   ) : (
                     <ol className="divide-y divide-gray-100">
                       {[...categories]
-                        .sort((a, b) => b.bookCount - a.bookCount)
+                        .sort((a, b) => b.count - a.count)
                         .map((cat, idx) => {
                           const max = Math.max(
-                            ...categories.map((c) => c.bookCount),
+                            ...categories.map((c) => c.count),
                             1
                           )
                           const pct = Math.round((cat.count / max) * 100)
@@ -397,7 +426,6 @@ export function PublicLibraryShell({
 
             {variant === "discover" && (
               <>
-            {/* ── Recommended — always shows all books, never filtered ── */}
             <section className="bg-white rounded-2xl p-5 shadow-sm ring-1 ring-black/5">
               <div className="mb-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--library-accent)]">
@@ -507,10 +535,11 @@ export function PublicLibraryShell({
             </section>
               </>
             )}
+            </>)}
           </main>
 
           {/* ── Right detail panel — visible on md+ ───────────────────── */}
-          {variant !== "download" && featuredBook && (
+          {!children && variant !== "download" && featuredBook && (
             <aside className="hidden md:flex w-72 shrink-0 flex-col bg-[var(--library-panel)] text-foreground border-l border-gray-100 overflow-y-auto">
               <RightDetailPanel
                 book={featuredBook}
@@ -524,7 +553,7 @@ export function PublicLibraryShell({
       </div>
 
       {/* ── Mobile Sheet — visible only on < md ────────────────────────── */}
-      {variant !== "download" && featuredBook && (
+      {!children && variant !== "download" && featuredBook && (
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetContent
             side="bottom"

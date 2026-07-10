@@ -28,6 +28,17 @@ import {
 import { extractText } from "@/lib/tiptap/extract-text"
 import type { TiptapDoc } from "@/lib/tiptap/types"
 
+type HistoryRow = {
+  id: number
+  bookId: number | null
+  action: string
+  query: string | null
+  createdAt: Date
+  title: string | null
+  author: string | null
+  categoryName: string | null
+}
+
 type DiscoverBookRow = {
   id: number
   title: string
@@ -207,10 +218,10 @@ export async function getDiscoverPageData(userId?: string | null) {
     historyCountPromise,
   ])
 
-  const recommendedBooks = recommendedRows.map((row, index) => toDiscoverBook(row as DiscoverBookRow, index))
-  const bookmarks = bookmarkRows.map((row, index) => toDiscoverBook(row as DiscoverBookRow, index + 1))
-  const favorites = favoriteRows.map((row, index) => toDiscoverBook(row as DiscoverBookRow, index + 2))
-  const history = historyRows.map((row, index) => ({
+  const recommendedBooks = (recommendedRows as unknown as DiscoverBookRow[]).map((row, index) => toDiscoverBook(row, index))
+  const bookmarks = (bookmarkRows as unknown as DiscoverBookRow[]).map((row, index) => toDiscoverBook(row, index + 1))
+  const favorites = (favoriteRows as unknown as DiscoverBookRow[]).map((row, index) => toDiscoverBook(row, index + 2))
+  const history = (historyRows as unknown as HistoryRow[]).map((row, index) => ({
     id: row.id,
     bookId: row.bookId,
     action: toActivityLabel(row.action),

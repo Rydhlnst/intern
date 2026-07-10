@@ -11,6 +11,11 @@ services:
       - "5433:5432"
     volumes:
       - library_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library_user -d library_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   minio:
     image: minio/minio
@@ -40,6 +45,54 @@ services:
       /usr/bin/mc anonymous set download local/library-covers;
       exit 0;
       "
+
+  # One-shot: runs DB migrations then seeds initial data (both idempotent).
+  migrate:
+    build:
+      context: .
+      target: migrator
+    container_name: library_migrate
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  app:
+    build:
+      context: .
+      target: runner
+      args:
+        # Baked into next.config at build time for next/image remotePatterns.
+        # Set MINIO_PUBLIC_HOST to your VPS IP or domain in .env.
+        MINIO_PUBLIC_HOST: ${MINIO_PUBLIC_HOST:-localhost}
+        MINIO_PORT: ${MINIO_PORT:-9000}
+        MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+    container_name: library_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      # MINIO_ENDPOINT uses the internal Docker service name for S3 API calls.
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_ACCESS_KEY: library_minio
+      MINIO_SECRET_KEY: library_minio_password
+      MINIO_BUCKET: library-covers
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      # MINIO_PUBLIC_HOST is used at runtime when generating stored cover URLs.
+      MINIO_PUBLIC_HOST: ${MINIO_PUBLIC_HOST:-localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      createbuckets:
+        condition: service_completed_successfully
+      migrate:
+        condition: service_completed_successfully
 
   adminer:
     image: adminer

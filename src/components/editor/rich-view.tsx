@@ -25,7 +25,6 @@ export function RichView({ doc, className, emptyFallback }: RichViewProps) {
         "prose prose-sm max-w-none dark:prose-invert",
         className
       )}
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

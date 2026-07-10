@@ -12,7 +12,6 @@ import {
   ChevronsUpDownIcon,
   ImageIcon,
   LoaderCircleIcon,
-  MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   SearchIcon,
@@ -150,6 +149,19 @@ function CoverInput({ existingUrl, file, removed, onFile, onRemove, onRestore }:
   )
 }
 
+// ─── SortHeader ──────────────────────────────────────────────────────────────
+
+function SortHeader({ label, className }: { label: string; className?: string }) {
+  return (
+    <th className={cn("px-4 py-3 text-left font-medium text-muted-foreground", className)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <ChevronsUpDownIcon className="size-3.5 opacity-50" />
+      </span>
+    </th>
+  )
+}
+
 // ─── BooksTable ──────────────────────────────────────────────────────────────
 
 type BooksTableProps = {
@@ -186,15 +198,6 @@ function BooksTable({
   const toggleAll = () => {
     setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)))
   }
-
-  const SortHeader = ({ label, className }: { label: string; className?: string }) => (
-    <th className={cn("px-4 py-3 text-left font-medium text-muted-foreground", className)}>
-      <span className="inline-flex items-center gap-1">
-        {label}
-        <ChevronsUpDownIcon className="size-3.5 opacity-50" />
-      </span>
-    </th>
-  )
 
   return (
     <div className="rounded-2xl border border-border overflow-hidden bg-background">

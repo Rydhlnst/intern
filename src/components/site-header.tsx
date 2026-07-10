@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDaysIcon } from "lucide-react"
+import { CalendarDaysIcon } from "lucide-react"
 
 import { requireAuth } from "@/auth/guards"
 import { Badge } from "@/components/ui/badge"
