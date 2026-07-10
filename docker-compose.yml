@@ -31,34 +31,6 @@ services:
     volumes:
       - library_minio_data:/data
 
-  # One-shot: waits for MinIO, then creates the covers bucket and makes it
-  # publicly readable so cover URLs are fetchable by next/image.
-  createbuckets:
-    image: minio/mc
-    container_name: library_createbuckets
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      until (/usr/bin/mc alias set local http://minio:9000 library_minio library_minio_password) do echo 'waiting for minio...'; sleep 2; done;
-      /usr/bin/mc mb --ignore-existing local/library-covers;
-      /usr/bin/mc anonymous set download local/library-covers;
-      exit 0;
-      "
-
-  # One-shot: runs DB migrations then seeds initial data (both idempotent).
-  migrate:
-    build:
-      context: .
-      target: migrator
-    container_name: library_migrate
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: on-failure
-
   app:
     build:
       context: .
@@ -89,10 +61,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      createbuckets:
-        condition: service_completed_successfully
-      migrate:
-        condition: service_completed_successfully
+      minio:
+        condition: service_started
 
   adminer:
     image: adminer

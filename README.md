@@ -36,7 +36,7 @@ Then edit `.env` — the defaults work out of the box for local development.
 ### 3. Start infrastructure (Postgres, MinIO, Adminer)
 
 ```bash
-docker compose up -d postgres minio createbuckets adminer
+docker compose up -d postgres minio adminer
 ```
 
 Services:
@@ -173,9 +173,9 @@ docker compose up -d --build
 
 This runs:
 1. `postgres` (with healthcheck)
-2. `minio` + `createbuckets` (creates the `library-covers` bucket)
-3. `migrate` (runs `drizzle-kit migrate` + `tsx src/db/seed.ts`, then exits)
-4. `app` (starts only after `migrate` succeeds)
+2. `minio`
+3. `app` (runs migrations, ensures the `library-covers` bucket exists, seeds initial data, then starts Next.js)
+
 
 ### 3. Verify
 
@@ -236,8 +236,8 @@ Mark **`MINIO_PUBLIC_HOST`**, **`MINIO_PORT`**, and **`MINIO_USE_SSL`** as **Bui
 Click **Deploy**. Coolify will:
 1. Build the app image (Next.js standalone build with sharp binaries)
 2. Start Postgres and MinIO
-3. Run `createbuckets` (creates the `library-covers` bucket, makes it publicly readable)
-4. Run `migrate` (applies Drizzle migrations + seeds the four test accounts)
+3. The app container creates the `library-covers` bucket automatically on startup
+4. The app container applies Drizzle migrations and seeds the four test accounts on startup
 5. Start the app once everything above succeeds
 
 ### 6. Verify
