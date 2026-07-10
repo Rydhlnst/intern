@@ -33,6 +33,7 @@ export async function createCategory(input: Input): Promise<ActionResult> {
   }
 
   revalidatePath("/categories");
+  revalidatePath("/dashboard/categories");
   return actionOk();
 }
 
@@ -60,6 +61,7 @@ export async function updateCategory(
   }
 
   revalidatePath("/categories");
+  revalidatePath("/dashboard/categories");
   return actionOk();
 }
 
@@ -79,5 +81,6 @@ export async function deleteCategory(id: number): Promise<ActionResult> {
 
   await db.delete(bookCategories).where(eq(bookCategories.id, id));
   revalidatePath("/categories");
+  revalidatePath("/dashboard/categories");
   return actionOk();
 }

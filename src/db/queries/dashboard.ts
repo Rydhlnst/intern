@@ -59,7 +59,13 @@ export async function getDashboardSummary() {
       activeLoans: loanTallies[0]?.active ?? 0,
       overdueLoans: loanTallies[0]?.overdue ?? 0,
     },
-    latestBooks: latestBooks.rows,
+    latestBooks: latestBooks.rows as Array<{
+      id: number;
+      title: string;
+      author: string;
+      categoryName: string;
+      availableCopies: number;
+    }>,
     latestLoans: latestLoans.rows,
     overdueLoans: overdueLoans.rows,
   };

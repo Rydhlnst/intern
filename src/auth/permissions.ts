@@ -21,10 +21,10 @@ export type Permission =
   | "delete:loans";
 
 const permissionMatrix: Record<Permission, Role[]> = {
-  "view:dashboard": ["super_admin", "librarian", "staff", "viewer"],
+  "view:dashboard": ["super_admin", "librarian", "staff", "reader"],
   "manage:users": ["super_admin"],
   "manage:roles": ["super_admin"],
-  "view:books": ["super_admin", "librarian", "staff", "viewer"],
+  "view:books": ["super_admin", "librarian", "staff", "reader"],
   "create:books": ["super_admin", "librarian"],
   "update:books": ["super_admin", "librarian"],
   "delete:books": ["super_admin", "librarian"],

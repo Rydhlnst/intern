@@ -6,15 +6,19 @@ import {
   desc,
   eq,
   gte,
-  ilike,
   isNotNull,
   isNull,
   lte,
-  or,
   sql,
   type SQL,
 } from "drizzle-orm";
 import { getPagination, paginated } from "@/lib/pagination";
+import {
+  bookCatalogCopyAgg,
+  buildBookSearchCondition,
+  fromBooksCatalogQuery,
+  getDashboardBookListSelect,
+} from "@/db/queries/helpers/book-catalog";
 
 export type BookFilters = {
   search?: string;
@@ -27,37 +31,11 @@ export type BookFilters = {
   limit?: number | string;
 };
 
-// Per-book copy tallies, computed in one grouped pass to avoid N+1.
-const copyAgg = db
-  .select({
-    bookId: bookCopies.bookId,
-    total: count().as("total_copies"),
-    available:
-      sql<number>`count(*) filter (where ${bookCopies.status} = 'available')`.as(
-        "available_copies"
-      ),
-    borrowed:
-      sql<number>`count(*) filter (where ${bookCopies.status} = 'borrowed')`.as(
-        "borrowed_copies"
-      ),
-  })
-  .from(bookCopies)
-  .groupBy(bookCopies.bookId)
-  .as("copy_agg");
-
 function buildBookWhere(filters: BookFilters): SQL | undefined {
   const conds: (SQL | undefined)[] = [];
 
   if (filters.search) {
-    const term = `%${filters.search}%`;
-    conds.push(
-      or(
-        ilike(books.title, term),
-        ilike(books.author, term),
-        ilike(books.publisher, term),
-        ilike(books.isbn, term)
-      )
-    );
+    conds.push(buildBookSearchCondition(filters.search, { includeIsbn: true }));
   }
   if (filters.categoryId) conds.push(eq(books.categoryId, filters.categoryId));
   if (filters.startDate) conds.push(gte(books.publicationDate, filters.startDate));
@@ -65,10 +43,10 @@ function buildBookWhere(filters: BookFilters): SQL | undefined {
   if (filters.hasCover === true) conds.push(isNotNull(books.coverUrl));
   if (filters.hasCover === false) conds.push(isNull(books.coverUrl));
   if (filters.availability === "available") {
-    conds.push(sql`coalesce(${copyAgg.available}, 0) > 0`);
+    conds.push(sql`coalesce(${bookCatalogCopyAgg.availableCopies}, 0) > 0`);
   }
   if (filters.availability === "unavailable") {
-    conds.push(sql`coalesce(${copyAgg.available}, 0) = 0`);
+    conds.push(sql`coalesce(${bookCatalogCopyAgg.availableCopies}, 0) = 0`);
   }
 
   return conds.length ? and(...conds) : undefined;
@@ -78,36 +56,13 @@ export async function getBooks(filters: BookFilters = {}) {
   const { page, limit, offset } = getPagination(filters);
   const where = buildBookWhere(filters);
 
-  const rowsPromise = db
-    .select({
-      id: books.id,
-      title: books.title,
-      author: books.author,
-      isbn: books.isbn,
-      publicationDate: books.publicationDate,
-      publisher: books.publisher,
-      numberOfPages: books.numberOfPages,
-      coverUrl: books.coverUrl,
-      createdAt: books.createdAt,
-      categoryId: books.categoryId,
-      categoryName: bookCategories.name,
-      totalCopies: sql<number>`coalesce(${copyAgg.total}, 0)`,
-      availableCopies: sql<number>`coalesce(${copyAgg.available}, 0)`,
-      borrowedCopies: sql<number>`coalesce(${copyAgg.borrowed}, 0)`,
-    })
-    .from(books)
-    .innerJoin(bookCategories, eq(books.categoryId, bookCategories.id))
-    .leftJoin(copyAgg, eq(copyAgg.bookId, books.id))
+  const rowsPromise = fromBooksCatalogQuery(getDashboardBookListSelect())
     .where(where)
     .orderBy(desc(books.createdAt))
     .limit(limit)
     .offset(offset);
 
-  const totalPromise = db
-    .select({ c: count() })
-    .from(books)
-    .leftJoin(copyAgg, eq(copyAgg.bookId, books.id))
-    .where(where);
+  const totalPromise = fromBooksCatalogQuery({ c: count() }).where(where);
 
   const [rows, totalRes] = await Promise.all([rowsPromise, totalPromise]);
   return paginated(rows, totalRes[0]?.c ?? 0, { page, limit, offset });

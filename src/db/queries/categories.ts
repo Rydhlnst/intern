@@ -1,20 +1,12 @@
-import { db } from "@/db";
-import { bookCategories, books } from "@/db/schema";
-import { count, eq } from "drizzle-orm";
+import { db } from "@/db"
+import { bookCategories } from "@/db/schema"
+import { eq } from "drizzle-orm"
+import { fromBookCategoriesQuery } from "@/db/queries/helpers/book-categories"
 
 export async function getCategories() {
-  return db
-    .select({
-      id: bookCategories.id,
-      name: bookCategories.name,
-      description: bookCategories.description,
-      createdAt: bookCategories.createdAt,
-      bookCount: count(books.id),
-    })
-    .from(bookCategories)
-    .leftJoin(books, eq(books.categoryId, bookCategories.id))
+  return fromBookCategoriesQuery()
     .groupBy(bookCategories.id)
-    .orderBy(bookCategories.name);
+    .orderBy(bookCategories.name)
 }
 
 export async function getCategoryById(id: number) {
@@ -22,6 +14,7 @@ export async function getCategoryById(id: number) {
     .select()
     .from(bookCategories)
     .where(eq(bookCategories.id, id))
-    .limit(1);
-  return category ?? null;
+    .limit(1)
+
+  return category ?? null
 }

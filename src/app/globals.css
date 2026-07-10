@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -53,8 +54,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.45 0.05 170);
+  --primary-foreground: oklch(0.99 0.01 95);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -64,23 +65,41 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.45 0.05 170);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
+  --library-shell: oklch(0.945 0.005 264);
+  --library-sidebar: oklch(0.984 0.004 250);
+  --library-panel: oklch(0.965 0.005 264);
+  --library-panel-strong: oklch(0.918 0.006 264);
+  --library-accent: oklch(0.45 0.05 170);
+  --library-accent-foreground: oklch(0.99 0.01 95);
+  --library-highlight: oklch(0.62 0.09 170);
+  --library-highlight-soft: oklch(0.892 0.022 170);
+  --library-ink-soft: oklch(0.50 0.008 264);
+  --library-detail: oklch(0.32 0.06 170);
+  --sidebar: var(--library-sidebar);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--library-accent);
+  --sidebar-primary-foreground: var(--library-accent-foreground);
+  --sidebar-accent: var(--library-panel-strong);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --book-cover-1: oklch(0.97 0.03 90);
+  --book-cover-2: oklch(0.96 0.015 60);
+  --book-cover-3: oklch(0.86 0.16 85);
+  --book-cover-4: oklch(0.3 0.03 20);
+  --book-cover-5: oklch(0.28 0.04 255);
+  --book-cover-6: oklch(0.74 0.09 58);
+  --book-cover-7: oklch(0.72 0.14 235);
+  --book-cover-8: oklch(0.68 0.18 35);
 }
 
 .dark {
@@ -90,8 +109,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.55 0.06 170);
+  --primary-foreground: oklch(0.99 0.01 95);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -101,7 +120,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.55 0.06 170);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -115,6 +134,16 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --library-shell: oklch(0.12 0.005 264);
+  --library-sidebar: oklch(0.158 0.004 250);
+  --library-panel: oklch(0.142 0.005 264);
+  --library-panel-strong: oklch(0.195 0.006 264);
+  --library-accent: oklch(0.55 0.06 170);
+  --library-accent-foreground: oklch(0.99 0.01 95);
+  --library-highlight: oklch(0.36 0.07 170);
+  --library-highlight-soft: oklch(0.22 0.03 170);
+  --library-ink-soft: oklch(0.625 0.008 264);
+  --library-detail: oklch(0.095 0.035 240);
 }
 
 @layer base {
@@ -127,4 +156,37 @@
   html {
     @apply font-sans;
   }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--library-panel-strong);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--library-ink-soft);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

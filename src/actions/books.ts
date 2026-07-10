@@ -12,6 +12,8 @@ import {
   type ActionResult,
 } from "@/lib/action-result";
 import { uploadBookCover, deleteBookCover } from "@/lib/storage/upload-cover";
+import { getBookById } from "@/db/queries/books";
+import type { TiptapDoc } from "@/lib/tiptap/types";
 import { revalidatePath } from "next/cache";
 import { count, eq } from "drizzle-orm";
 
@@ -57,9 +59,9 @@ export async function createBook(formData: FormData): Promise<ActionResult<numbe
       .returning({ id: books.id });
 
     revalidatePath("/books");
+    revalidatePath("/dashboard/books");
     return actionOk(row.id);
   } catch (err) {
-    // Roll back the just-uploaded object so we don't orphan storage.
     if (cover) await deleteBookCover(cover.coverObjectKey).catch(() => {});
     if (isUniqueViolation(err)) return actionError("A book with this ISBN already exists.");
     throw err;
@@ -128,12 +130,12 @@ export async function updateBook(
     })
     .where(eq(books.id, id));
 
-  // Delete the previous object only after the DB row points elsewhere.
   if ((cover || removeCover) && existing.coverObjectKey) {
     await deleteBookCover(existing.coverObjectKey).catch(() => {});
   }
 
   revalidatePath("/books");
+  revalidatePath("/dashboard/books");
   revalidatePath(`/books/${id}`);
   return actionOk();
 }
@@ -164,5 +166,35 @@ export async function deleteBook(id: number): Promise<ActionResult> {
   }
 
   revalidatePath("/books");
+  revalidatePath("/dashboard/books");
   return actionOk();
+}
+
+export async function getBookForEdit(id: number): Promise<ActionResult<{
+  id: number
+  title: string
+  author: string
+  isbn: string | null
+  publicationDate: string
+  publisher: string
+  numberOfPages: number
+  categoryId: number
+  description: TiptapDoc | null
+  coverUrl: string | null
+}>> {
+  await requirePermission("update:books");
+  const book = await getBookById(id);
+  if (!book) return actionError("Book not found.");
+  return actionOk({
+    id: book.id,
+    title: book.title,
+    author: book.author,
+    isbn: book.isbn,
+    publicationDate: String(book.publicationDate),
+    publisher: book.publisher,
+    numberOfPages: book.numberOfPages,
+    categoryId: book.categoryId,
+    description: (book.description as TiptapDoc | null) ?? null,
+    coverUrl: book.coverUrl,
+  });
 }
