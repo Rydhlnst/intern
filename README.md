@@ -5,6 +5,8 @@ A full-stack library management application built with Next.js 16, Drizzle ORM, 
 - **Public flow** — catalog browsing for readers and guests
 - **Dashboard flow** — authenticated management for librarians, staff, and admins
 
+> **Live production:** <https://library.beres.io>
+
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router, Turbopack, standalone output)
@@ -77,10 +79,15 @@ The seed script creates one account for each role. Use these to test different p
 
 ### Quick admin login for testing
 
+**Local:**
 1. Go to <http://localhost:3000/login>
 2. Email: `admin@example.com`
 3. Password: `password`
 4. You'll land on `/dashboard` with full access to books and categories.
+
+**Live production:**
+1. Go to <https://library.beres.io/login>
+2. Use the same seeded credentials above.
 
 ## Route Structure
 
